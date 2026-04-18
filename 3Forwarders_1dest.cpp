@@ -5,7 +5,7 @@ static constexpr double INF = 1e12;
 static constexpr double EPS  = 1e-12;
 
 double safe_zero(double x) { return (fabs(x) < EPS) ? 0.0 : x; }
-
+//these two will be used extensively in whole project
 bool pairwise_valid(double a, double b, double ab) {
     double low = max(0.0, a + b - 1.0);
     double high = min(a, b);
