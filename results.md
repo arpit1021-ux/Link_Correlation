@@ -23,7 +23,6 @@ Simulated ETX  = 4.0937
 Simulation closely matches analytical result, validating the model.
 
 ---
-
 ## 🔹 Case 2: 0 → {1,2} → {3,4}
 
 ### Input:
@@ -47,7 +46,7 @@ Simulated ETX  = 4.3413
 
 ### Observation:
 Simulated ETX is slightly lower due to favorable random transmission outcomes.
-
+increasing number of packets can make this more validated .
 ---
 
 ## 🔹 Case 3: 0 → {1,2,3} → {4,5,6}
