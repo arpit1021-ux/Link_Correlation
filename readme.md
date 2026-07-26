@@ -8,11 +8,11 @@ A progressive C++ simulation and analytical framework for **correlation-aware op
 
 - [Overview](#overview)
 - [Core Concepts](#core-concepts)
+- [Base Test Case](#base-test-case)
 - [Phase Summary](#phase-summary)
 - [Phase 1 — Basic ETX Calculator (2 Forwarders, 1 Destination)](#phase-1--basic-etx-calculator-2-forwarders-1-destination)
 - [Phase 2 — 3-Forwarder Simplex ETX (Analytical)](#phase-2--3-forwarder-simplex-etx-analytical)
 - [Phase 3 — 3-Forwarder Simplex vs Full Duplex (Analytical)](#phase-3--3-forwarder-simplex-vs-full-duplex-analytical)
-- [Phase 3.5 — Paper Topology Validation](#phase-35--paper-topology-validation)
 - [Phase 4 — Multicast Simplex (Simulation + Analytical)](#phase-4--multicast-simplex-simulation--analytical)
 - [Phase 5 — Simplex vs Full Duplex (Simulation + Analytical)](#phase-5--simplex-vs-full-duplex-simulation--analytical)
 - [Phase 6 — Generalized Multi-Hop Network (WIP)](#phase-6--generalized-multi-hop-network-wip)
@@ -48,6 +48,43 @@ Wireless networks suffer from unreliable links due to interference, fading, and 
 
 ---
 
+## Base Test Case
+
+All results below are computed for the following base test case. Every phase file accepts runtime input, so different probabilities can be tested by re-running with new values.
+
+**Topology:** 0 → {1, 2, 3} → {4, 5, 6}
+
+```
+Reachability:
+  Node 1 → {4, 5}
+  Node 2 → {5, 6}
+  Node 3 → {5, 6}
+```
+
+**Hop-1 Probabilities (source → forwarders):**
+
+| Marginal | Value | Joint | Value |
+|----------|-------|-------|-------|
+| p(0→1) | 0.50 | p(0→1,2) | 0.30 |
+| p(0→2) | 0.40 | p(0→1,3) | 0.25 |
+| p(0→3) | 0.45 | p(0→2,3) | 0.20 |
+| | | p(0→1,2,3) | 0.15 |
+
+**Hop-2 Probabilities (forwarders → destinations):**
+
+| Forwarder | Marginal | Value | Joint | Value |
+|-----------|----------|-------|-------|-------|
+| Node 1 → {4,5} | p(1→4) | 0.60 | p(1→4,5) | 0.30 |
+| | p(1→5) | 0.50 | | |
+| Node 2 → {5,6} | p(2→5) | 0.50 | p(2→5,6) | 0.30 |
+| | p(2→6) | 0.55 | | |
+| Node 3 → {5,6} | p(3→5) | 0.45 | p(3→5,6) | 0.25 |
+| | p(3→6) | 0.50 | | |
+
+**Simulation parameters:** 10,000 packets per run.
+
+---
+
 ## Phase Summary
 
 | Phase | File | Input | Topology | Metric | Key Result |
@@ -55,7 +92,6 @@ Wireless networks suffer from unreliable links due to interference, fading, and 
 | 1 | `phase1_simplex_fd.cpp` | stdin | 0→{1,2}→3 | Analytical | FD: 6.1% latency reduction |
 | 2 | `phase2_3fwd_1dest.cpp` | stdin | 0→{1,2,3}→4 | Analytical | Simplex ETX = 3.063 |
 | 3 | `phase3_3fwd_1dest_fd.cpp` | stdin | 0→{1,2,3}→4 | Analytical | FD: 9.5% latency reduction |
-| 3.5 | `phase3_5.cpp` | hardcoded | Paper topology | Analytical | Anchor validation PASSED |
 | 4 | `phase4_3fwd_3dest_simplex.cpp` | stdin | 0→{1,2,3}→{4,5,6} | Sim + Analytical | 5.995 vs 5.990 (0.08% gap) |
 | 4a | `phase4_analytical.cpp` | stdin | 0→{1,2,3}→{4,5,6} | Analytical (no RNG) | Bitmask engine: 4.420 slots |
 | 5 | `phase5_3fwd_3dest_fd.cpp` | stdin | 0→{1,2,3}→{4,5,6} | Sim + Analytical | FD: 25.9% latency reduction |
@@ -94,22 +130,12 @@ E = (1 + P(only1)·c13 + P(only2)·c23 + P(both)·(2/p_union)) / (1 - P(none))
 
 where `p_union = p13 + p23 - p13·p23`.
 
-### Results
+### Results (Base Test Case)
 
 | Metric | Simplex | Full Duplex | Change |
 |--------|---------|-------------|--------|
 | Latency (slots) | 3.389 | 3.181 | **6.1% less** |
 | Resource (tx) | 3.389 | 3.806 | 12.3% more |
-
-### Input Format (stdin)
-
-```
-Enter p(0->1): 0.5
-Enter p(0->2): 0.4
-Enter p(0->1 AND 0->2): 0.3
-Enter p(1->3): 0.6
-Enter p(2->3): 0.5
-```
 
 ---
 
@@ -131,7 +157,7 @@ E = (1 + Σ P(region) · X(region)) / (1 - P(none))
 
 where `X(region) = min(c14, c24, c34)` depending on which forwarders are active in that region.
 
-### Results
+### Results (Base Test Case)
 
 | Metric | Simplex |
 |--------|---------|
@@ -150,38 +176,12 @@ where `X(region) = min(c14, c24, c34)` depending on which forwarders are active 
 - For FD, all active forwarders transmit simultaneously per slot
 - Reports dual metric: latency (slots) and resource (tx)
 
-### Results
+### Results (Base Test Case)
 
 | Metric | Simplex | Full Duplex | Change |
 |--------|---------|-------------|--------|
 | Latency (slots) | 3.063 | 2.771 | **9.5% less** |
 | Resource (tx) | 3.063 | 3.709 | 21.1% more |
-
----
-
-## Phase 3.5 — Paper Topology Validation
-
-**File:** `phase3_5.cpp` · **Input:** hardcoded (validation-only)
-
-### What It Does
-
-Validates the bitmask coverage-state engine against a **published paper anchor value**. This is the only external validation checkpoint in the project.
-
-### Topology
-
-```
-S → f1 → D1,  S → f2 → D2,  S → f3 → {D1, D2}
-Absorbing condition: (f1 OR f3) AND (f2 OR f3)
-```
-
-### Results
-
-| Checkpoint | Expected | Got | Status |
-|-----------|----------|-----|--------|
-| ETX(f3 → {D1,D2}) | 2.0834 | 2.0833 | PASSED |
-| E1 (from {f1}) | 2.8145 | 2.8145 | PASSED |
-| E2 (from {f2}) | 2.8145 | 2.8145 | PASSED |
-| **E0 (from ∅)** | **3.024** | **3.0240** | **PASSED** |
 
 ---
 
@@ -210,7 +210,7 @@ Reachability:
 Absorbing condition: (f1 received) AND (f2 OR f3 received)
 ```
 
-### Results
+### Results (Base Test Case)
 
 | Metric | Simulation | Analytical | Agreement |
 |--------|-----------|------------|-----------|
@@ -229,7 +229,7 @@ Absorbing condition: (f1 received) AND (f2 OR f3 received)
 - Simplex uses **optimal relay selection** (minimum cost per coverage state)
 - Full duplex uses **relay deactivation** — relays whose destinations are already covered stop transmitting
 
-### Results
+### Results (Base Test Case)
 
 | Metric | Simplex (sim) | FD (sim) | FD (theory) | Gap |
 |--------|--------------|----------|-------------|-----|
@@ -266,7 +266,6 @@ Reads an arbitrary network topology from an input file and computes routing tabl
 | Phase 5 Simplex | 5.995 | 5.990 | 0.08% |
 | Phase 5 FD Latency | 4.442 | 4.420 | 0.50% |
 | Phase 5 FD Resource | 6.535 | 6.495 | 0.60% |
-| Phase 3.5 Anchor | 3.024 | 3.024 | 0.00% |
 
 All within ~1% sampling noise for 10,000 packets.
 
@@ -284,7 +283,6 @@ All within ~1% sampling noise for 10,000 packets.
 g++ -o phase1 phase1_simplex_fd.cpp -std=c++17
 g++ -o phase2 phase2_3fwd_1dest.cpp -std=c++17
 g++ -o phase3 phase3_3fwd_1dest_fd.cpp -std=c++17
-g++ -o phase3_5 phase3_5.cpp -std=c++17
 g++ -o phase4 phase4_3fwd_3dest_simplex.cpp -std=c++17
 g++ -o phase4a phase4_analytical.cpp -std=c++17
 g++ -o phase5 phase5_3fwd_3dest_fd.cpp -std=c++17
@@ -302,20 +300,17 @@ g++ -o phase6 phase6_generalized.cpp -std=c++17
 ./phase4a
 ./phase5
 
-# Phase 3.5: runs automatically (hardcoded validation)
-./phase3_5
-
 # Phase 6: reads from phase6_input.txt
 ./phase6
 ```
 
-> All files (except Phase 3.5) accept runtime input via `cin` with clear prompts.
+> All files accept runtime input via `cin` with clear prompts.
 
 ---
 
 ## Input File Format
 
-### Phases 1-3, 3.5 (stdin, interactive)
+### Phases 1-3 (stdin, interactive)
 
 Enter probabilities one by one when prompted:
 
@@ -365,10 +360,8 @@ Enter all values in sequence:
 ```
 Link_Correlation/
 ├── phase1_simplex_fd.cpp        Phase 1: Basic 2-fwd ETX (analytical)
-├── phase1_input.txt             Sample input for Phase 1
 ├── phase2_3fwd_1dest.cpp        Phase 2: 3-fwd simplex ETX (analytical)
 ├── phase3_3fwd_1dest_fd.cpp     Phase 3: Simplex vs FD (analytical)
-├── phase3_5.cpp                 Phase 3.5: Paper topology validation
 ├── phase4_3fwd_3dest_simplex.cpp Phase 4: Multicast simplex (simulation)
 ├── phase4_analytical.cpp        Phase 4: Bitmask engine (analytical, no RNG)
 ├── phase5_3fwd_3dest_fd.cpp     Phase 5: Simplex vs FD (simulation)
@@ -377,24 +370,10 @@ Link_Correlation/
 ├── results_full_duplex.md       Complete results with all validated numbers
 ├── 3Forwarders_1dest.cpp        Legacy: 3-fwd 1-dest analytical
 ├── 3Forwarders_2dest.cpp        Legacy: 3-fwd 2-dest analytical
-├── etx_case_study.cpp           Legacy: Full paper-faithful implementation
+├── etx_case_study.cpp           Legacy: Full implementation
 ├── simulation_basic.cpp         Legacy: Basic Monte Carlo simulator
 └── README.md                    This file
 ```
-
----
-
-## Bug-Hunting Log
-
-17+ bugs found and fixed across the project, each traced to a specific line with verifiable before/after numbers:
-
-| # | Bug | Root Cause | Fix |
-|---|-----|-----------|-----|
-| 1 | R1/R2/R3 formula wrong | Numerator used `P(none)` instead of `1`; "both" added phantom cost | `(1 + oA*cB + oB*cA) / (1-none)` |
-| 2 | Simplex relay selection | Round-robin by index | Optimal relay (min cost per coverage state) |
-| 3 | FD relay deactivation | `fwdList` frozen after hop-1 | Recomputed each round based on current coverage |
-| 4 | Hop-2 slot-snapshot | Relay set recomputed mid-round | Fixed at round start |
-| 5 | Hop-1 accumulation | Forwarder set not accumulated across retries | Fixed accumulation logic |
 
 ---
 
@@ -403,7 +382,3 @@ Link_Correlation/
 - **Language:** C++17 (STL)
 - **RNG:** L'Ecuyer combined multiplicative congruential generator (Phases 4-5)
 - **Concepts:** Probability Theory, Graph Routing, Wireless Networks, Simulation Modeling, Markov Chains, Fixed-Point Iteration
-
----
-
-"All rights reserved. Unauthorized use prohibited."
