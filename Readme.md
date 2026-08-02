@@ -1,70 +1,98 @@
-# Project Progression
+# Link-Correlation Aware Routing in Multihop Wireless Networks 
 
-## Evolution from Phases 1–5
-
-The current implementation builds upon the work completed during Phases 1–5 and incorporates several correctness improvements, model refinements, and extensive validation efforts.
-
-### Corrections and Model Improvements
-
-* Corrected three implementation issues identified in the earlier codebase:
-
-  * Updated the analytical formulation in `first_updated.cpp` by correcting the mislabeled probability expression ("both" to "at least one").
-  * Replaced the heuristic maximum-based forwarding model in `3Forwarders_1dest.cpp` with a proper union-probability formulation.
-  * Verified that the forwarding condition used in `simulation_3dest.cpp`, although initially appearing hardcoded, was structurally correct once multicast delivery semantics were properly interpreted.
-
-### Simplex vs. Full Duplex Evaluation
-
-* Established and quantified the tradeoff between Simplex and Full Duplex forwarding.
-* Experimental evaluation showed that Full Duplex consistently reduced end-to-end latency (measured in transmission slots) by approximately **9–40%**, while increasing the total number of transmissions (resource consumption) by approximately **14–25%**.
-* These results demonstrate that Full Duplex represents a measurable latency-resource tradeoff rather than a universally superior forwarding strategy.
-
-### Multicast Semantics
-
-* Formalized multicast routing semantics by defining successful delivery as reaching **all destination nodes**, rather than any single destination.
-* The analytical model and simulations were updated accordingly, ensuring that the source successfully reaches the required relay combinations necessary for complete multicast coverage.
-
-### Simulation Validation
-
-Several subtle implementation issues were identified and resolved during the validation process, including:
-
-* Event batching order dependence.
-* Stale duplicate packet propagation.
-* Incorrect accumulation logic caused by overwriting state instead of performing logical union operations.
-* Additional synchronization and consistency issues affecting agreement between analytical and simulated results.
-
-Each correction was verified by requiring close agreement between the analytical model and Monte Carlo simulation, rather than relying solely on qualitative correctness.
+This project analyzes and implements **correlation-aware opportunistic routing**
+in wireless multihop networks. It extends traditional ETX-based routing by
+incorporating **joint (correlated) reception probabilities** instead of
+assuming independent link behavior, and studies the tradeoff between
+**simplex** (single relay continues at a time) and **full-duplex**
+(multiple correlated forwarders transmit concurrently) forwarding strategies.
 
 ---
 
-# Phase 6: Generalized Routing Framework
+## 📌 Overview
 
-Phase 6 extends the project from topology-specific implementations to a fully generalized routing framework.
+Wireless links fail in correlated ways — shared interference, fading, and
+medium contention mean nearby links often succeed or fail together, not
+independently. Traditional ETX-based routing ignores this. This project:
 
-## Generalized Analytical and Simulation Engine
+- Models **correlated packet reception** using joint probability data
+- Computes **Expected Transmission Count (ETX)** as a routing cost metric,
+  generalized to both single-destination and multicast delivery
+- Extends this to **forwarder-set selection** and full multi-hop routing
+  tables, solved via fixed-point iteration (not hand-derived formulas)
+- Characterizes the **simplex vs. full-duplex tradeoff**: full duplex
+  reduces delivery latency but increases total transmission cost — both
+  measured and reported explicitly, not just one
+- Validates every analytical result against an independent discrete-event
+  simulation, for every phase of the project
 
-The Phase 6 implementation accepts **any acyclic multi-hop topology** as runtime input, including:
+---
 
-* Number of nodes
-* Source node
-* Destination nodes
-* Network connectivity
-* Link ETX values
-* Correlation information
+## ⚙️ Project Structure
 
-No network topology is hardcoded, allowing the same implementation to evaluate arbitrary supported networks without modification.
+Link_Correlation/
+├── legacy/                  <- mini project work
+├── phase1_5/                <- the corrected/validated Phase 1-5 files
+│   ├── phase1_simplex_fd.cpp
+│   ├── phase2_3fwd_1dest.cpp
+│   ├── phase3_3fwd_1dest_fd.cpp
+│   ├── phase4_3dest_sim.cpp
+│   └── phase5_3dest_fd_sim.cpp
+├── phase6/
+│   ├── phase6_simplex_combined.cpp
+│   ├── test_cases/
+│   │   ├── test1_phase1_2fwd_1dest.txt
+│   │   ├── test2_phase2style_3fwd_1dest.txt
+│   │   ├── test3_phase4style_3fwd_3dest.txt
+│   │   ├── test4_new_3hop_chain.txt
+│   │   └── test5_own16node_multihop.txt
+│   └── README.md            <- input format explanation
+└── README.md                <- top-level, updated (see below)
 
-## Validation Across Multiple Network Topologies
+---
 
-The generalized framework was validated on five structurally different test cases, including:
+## 🧪 Methodology
 
-* The original Phase 1 two-forwarder topology.
-* The original Phase 2/3 three-forwarder topology.
-* The original Phase 4/5 multicast topology.
-* A newly designed three-hop multicast network.
-* A 16-node multi-hop network.
+- **Analytical model:** per-node expected-cost equations solved via
+  fixed-point iteration, using exact inclusion-exclusion over correlated
+  reception outcomes (no independence assumption)
+- **Simulation:** discrete-event, one packet at a time, using the same
+  correlated reception model, for direct comparison against the analytical
+  result
+- **Validation discipline:** every phase's analytical and simulated results
+  are checked against each other before being trusted; several real bugs
+  were found and fixed this way during development (see commit history)
 
-Across all evaluated cases, the analytical model and Monte Carlo simulation exhibited agreement within approximately **0.06%–0.96%**, providing strong validation of the generalized implementation.
+---
 
-## Dynamic Forwarding Strategy
+## 📊 Key Results So Far
 
-The generalized routing engine implements a dynamic forwarding methodology in which forwarding decisions are determined according to the evolving packet state throughout the routing process, rather than relying on fixed relay assignments. This enables the framework to support generalized multicast routing over arbitrary acyclic network topologies while maintaining consistency between the analytical model and simulation.
+| | Latency (slots) | Resource (total transmissions) |
+|---|---|---|
+| Full duplex vs. simplex | **9–40% lower** | **14–25% higher** |
+
+Full duplex is not a free win — it trades additional transmission/energy
+cost for reduced delivery latency. Both effects are measured and reported
+together throughout this project.
+
+The generalized Phase 6 engine has been validated across five structurally
+different topologies (varying hop depth, forwarder count, and destination
+count), with analytical-vs-simulated agreement within **~1%** in every case.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Language:** C++ (STL only, no external dependencies)
+- **Concepts used:** probability theory (inclusion-exclusion, Fréchet
+  bounds), fixed-point/Bellman-Ford-style iterative solving, discrete-event
+  simulation, graph routing
+
+---
+
+## 🚀 Next Steps
+
+- Full-duplex extension of the generalized Phase 6 engine
+- Scaling to larger (16–20+ node) topologies
+- Routing-table and forwarder-set-selection heuristics for higher-degree
+  nodes, where exhaustive forwarding-set search becomes intractable
