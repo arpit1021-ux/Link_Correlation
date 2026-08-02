@@ -30,24 +30,35 @@ independently. Traditional ETX-based routing ignores this. This project:
 
 ## ⚙️ Project Structure
 
+```text
 Link_Correlation/
-├── legacy/                  <- mini project work
-├── phase1_5/                <- the corrected/validated Phase 1-5 files
+├── legacy/                              # Original mini-project implementation
+│
+├── phase1_5/                            # Corrected & validated implementations (Phases 1–5)
+│   ├── phase1_input.txt
 │   ├── phase1_simplex_fd.cpp
 │   ├── phase2_3fwd_1dest.cpp
 │   ├── phase3_3fwd_1dest_fd.cpp
-│   ├── phase4_3dest_sim.cpp
-│   └── phase5_3dest_fd_sim.cpp
-├── phase6/
+│   ├── phase3_5.cpp
+│   ├── phase4_3fwd_3dest_simplex.cpp
+│   ├── phase4_analytical.cpp
+│   └── phase5_3fwd_3dest_fd.cpp
+│
+├── phase6/                              # Generalized implementation
 │   ├── phase6_simplex_combined.cpp
-│   ├── test_cases/
-│   │   ├── test1_phase1_2fwd_1dest.txt
-│   │   ├── test2_phase2style_3fwd_1dest.txt
-│   │   ├── test3_phase4style_3fwd_3dest.txt
-│   │   ├── test4_new_3hop_chain.txt
-│   │   └── test5_own16node_multihop.txt
-│   └── README.md            <- input format explanation
-└── README.md                <- top-level, updated (see below)
+│   └── test_cases/
+│       ├── input_format_readme.md
+│       ├── test1_phase1_2fwd_1dest.txt
+│       ├── test2_phase2style_3fwd_1dest.txt
+│       ├── test3_phase4style_3fwd_3dest.txt
+│       ├── test4_new_3hop_chain.txt
+│       └── test5_own16node_multihop.txt
+│
+├── testing_phase6/                      # Additional Phase 6 experiments and validation
+│
+├── .gitignore
+└── Readme.md                            # Project documentation
+```
 
 ---
 
